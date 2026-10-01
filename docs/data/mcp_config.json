@@ -1,1 +1,1 @@
-{"config": {"mcpServers": {"prophecy": {"type": "http", "url": "http://127.0.0.1:8000/mcp"}}}, "url": "http://127.0.0.1:8000/mcp", "repo": "/private/tmp/demo-export"}
+{"config": {"mcpServers": {"prophecy": {"type": "http", "url": "http://127.0.0.1:8000/mcp"}}}, "url": "http://127.0.0.1:8000/mcp", "repo": "/tmp/prophecy-demo"}
