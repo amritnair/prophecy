@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prophecy</title>
-<script>window.PROPHECY_STATIC = true;window.PROPHECY_REPO = "/tmp/prophecy-demo";</script>
+<script>window.PROPHECY_STATIC = true;window.PROPHECY_REPO = "/private/tmp/demo-export";</script>
 <link rel="canonical" href="https://amritnair.github.io/prophecy/">
 <meta property="og:url" content="https://amritnair.github.io/prophecy/">
 <meta property="og:image" content="https://amritnair.github.io/prophecy/logo.png">
@@ -2134,7 +2134,18 @@ const showBanner = m => {
 const hideBanner = () => { $('#banner').hidden = true; };
 
 /* ── tabs ─────────────────────────────────────────────────── */
+/* Seven tabs behind one title is how a browser history, a bookmark and a
+   pinned tab all end up saying the same unhelpful word. The tab buttons
+   already carry the names, so there is nothing to keep in step. */
+function titleFor(tab) {
+  const button = document.querySelector(`nav button[data-tab="${tab}"]`);
+  const name = button ? button.textContent.trim() : '';
+  const project = REPO ? base(REPO) : '';
+  return [name, project, 'Prophecy'].filter(Boolean).join(' · ');
+}
+
 function selectTab(tab) {
+  document.title = titleFor(tab);
   document.querySelectorAll('nav button').forEach(x =>
     x.setAttribute('aria-selected', String(x.dataset.tab === tab)));
   document.querySelectorAll('main section').forEach(s =>

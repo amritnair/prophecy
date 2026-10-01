@@ -33,6 +33,26 @@ write endpoint refused, the `repo` parameter ignored. Without it that
 parameter accepts any path on the host, which is correct for a tool running
 as you and wrong the moment it is not.
 
+## What is stored, and how to delete it
+
+Everything Prophecy keeps about a project lives in `.prophecy/` inside that
+repository: a SQLite database of risks, agent sessions, findings, messages
+and verdicts, and a `secret` file when sign-in is on. Nothing is sent
+anywhere, and there is no account to close.
+
+```
+rm -rf .prophecy/          # every trace of Prophecy in that project
+```
+
+Deleting it loses the history and the shared findings, and costs nothing
+else — the next run rebuilds what it can from git.
+
+The published demo at https://amritnair.github.io/prophecy/ is static. It
+sets no cookies and has no server to send anything to. The page keeps your
+last project and tab in `localStorage` so it opens where you left it; clear
+site data and that is gone too. The one third party is Google Fonts, which
+sees an IP address when the page loads, as it does on any site that uses it.
+
 ## Known limits
 
 `--public` is about paths and writes, not about secrets. Anything in the
