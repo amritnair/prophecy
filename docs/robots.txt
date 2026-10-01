@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://amritnair.github.io/prophecy/sitemap.xml

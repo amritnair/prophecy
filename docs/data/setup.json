@@ -1,1 +1,1 @@
-{"repo_ok": true, "problem": null, "github": "amritnair/prophecy-demo", "github_auth": false, "github_problem": "gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN environment variable. Example:\n  env:\n    GH_TOKEN: ${{ github.token }}", "agents": 6, "live": 6, "people": 6}
+{"repo_ok": true, "problem": null, "github": "amritnair/prophecy-demo", "github_auth": true, "github_problem": null, "agents": 6, "live": 6, "people": 6}

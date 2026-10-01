@@ -1,9 +1,33 @@
 <!doctype html>
-<script>window.PROPHECY_STATIC = true;window.PROPHECY_REPO = "/tmp/prophecy-demo";</script>
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prophecy</title>
+<script>window.PROPHECY_STATIC = true;window.PROPHECY_REPO = "/private/tmp/demo-export";</script>
+<link rel="canonical" href="https://amritnair.github.io/prophecy/">
+<meta property="og:url" content="https://amritnair.github.io/prophecy/">
+<meta property="og:image" content="https://amritnair.github.io/prophecy/logo.png">
+<meta name="twitter:image" content="https://amritnair.github.io/prophecy/logo.png">
+<script type="application/ld+json">
+{"@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Prophecy",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "https://amritnair.github.io/prophecy/",
+  "codeRepository": "https://github.com/amritnair/prophecy",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+  "description": "Reads a repository and answers what a change would break, given everything else in flight."}
+</script>
+<meta name="description" content="Prophecy reads a repository and answers one question: given everything else happening here, what would this change break? It finds the collisions that share no file and no import, before anyone spends a day building on top of them.">
+<meta name="color-scheme" content="dark">
 <link rel="icon" type="image/png" href="logo.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Prophecy">
+<meta property="og:title" content="Prophecy">
+<meta property="og:description" content="What would this change break, given everything else happening in this repository?">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +36,11 @@
   :root {
     --bg: #000000; --card: #0B0B0B; --raised: #141414;
     --line: #222222; --line-2: #333333; --rule: #222222;
-    --text: #F5F5F5; --text-2: #A3A3A3; --text-3: #737373;
+    --text: #F5F5F5; --text-2: #A3A3A3;
+    /* 4.5:1 against the cards, which is the floor for text this
+       small; #737373 sat at 4.15 and this is the nearest grey that
+       clears it */
+    --text-3: #7C7C7C;
     --accent: #FFFFFF; --violet: #8B5CF6; --lavender: #E6E6E6;
     --good: #4ADE80; --warn: #FBBF24; --bad: #F87171; --red: #F87171;
     --ui: "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -1072,7 +1100,7 @@
     --claude: #D97757; --claude-2: #E8A087;
     --ok: #6B9F6B; --warn: #D4A017; --bad: #E07070;
     --pr-bg: #000000; --pr-card: #0B0B0B; --pr-line: #222222;
-    --pr-text: #F5F5F5; --pr-dim: #A3A3A3; --pr-mute: #737373;
+    --pr-text: #F5F5F5; --pr-dim: #A3A3A3; --pr-mute: #7C7C7C;
     --pr-accent: #FFFFFF; --pr-cyan: #FFFFFF;
     --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;

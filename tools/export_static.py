@@ -14,6 +14,7 @@ running instance would say.
 Writes docs/index.html and docs/data/*.json.
 """
 
+import datetime
 import json
 import re
 import shutil
@@ -46,7 +47,28 @@ PLAIN = [
 ]
 
 
+SITE = "https://amritnair.github.io/prophecy/"
 CODESPACE = "https://codespaces.new/amritnair/prophecy?quickstart=1"
+
+# Only the published copy can know where it lives, so the tags that need an
+# absolute URL are written here rather than carried in the page itself.
+HEAD_TAGS = f"""<link rel="canonical" href="{SITE}">
+<meta property="og:url" content="{SITE}">
+<meta property="og:image" content="{SITE}logo.png">
+<meta name="twitter:image" content="{SITE}logo.png">
+<script type="application/ld+json">
+{{"@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Prophecy",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "macOS, Linux, Windows",
+  "url": "{SITE}",
+  "codeRepository": "https://github.com/amritnair/prophecy",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": {{"@type": "Offer", "price": "0", "priceCurrency": "USD"}},
+  "description": "Reads a repository and answers what a change would break, given everything else in flight."}}
+</script>
+"""
 
 # Appended to the published page only. The local dashboard has an engine
 # behind it and needs none of this.
@@ -124,6 +146,93 @@ def key(cmd, params=None):
     return re.sub(r"[^A-Za-z0-9._-]", "_", name)
 
 
+def write_site_files():
+    """The small files a crawler, a reader or a model goes looking for.
+
+    Written here rather than kept by hand, so they cannot drift away from
+    the page they describe.
+    """
+    today = datetime.date.today().isoformat()
+
+    # Nothing here is private and nothing is behind a login, so there is no
+    # reason to turn anybody away, including the model crawlers. Blocking
+    # them is how a project stops being quotable.
+    (DOCS / "robots.txt").write_text(
+        "User-agent: *\n"
+        "Allow: /\n"
+        "\n"
+        f"Sitemap: {SITE}sitemap.xml\n")
+
+    (DOCS / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"  <url>\n    <loc>{SITE}</loc>\n"
+        f"    <lastmod>{today}</lastmod>\n"
+        "    <changefreq>weekly</changefreq>\n  </url>\n"
+        "</urlset>\n")
+
+    (DOCS / "llms.txt").write_text(f"""# Prophecy
+
+> Reads a repository and answers one question: given everything else
+> happening here, what would this change break?
+
+This page is a recording. Every answer on it was produced by running the
+real engine once and writing the result down, because the engine shells out
+to git against a checkout and a static host has none.
+
+## What it does
+
+- Scans the files git tracks for symbols, signatures and imports. Python
+  through `ast`, TypeScript and JavaScript by pattern matching.
+- Scores a change from 0 to 100 with a range and a confidence, and carries
+  the evidence that produced the score.
+- Finds pairs of changes that are calm alone and dangerous together,
+  including pairs that share no file and no import but meet at the same
+  stored field. That is the case a diff review cannot catch.
+- Serves MCP, so a coding agent asks what it is walking into before it
+  edits, and is handed a slice instead of exploring the tree.
+
+## What it does not do
+
+- Nothing here observes runtime. It knows how many files import a symbol
+  and not how often any of them runs, which is the largest source of the
+  range on every score.
+- Scores are a ranking heuristic. They have not earned the word calibrated.
+- TypeScript is read with pattern matching rather than a parser, so
+  references in it are missed, and the analysis says so rather than
+  quietly rounding up.
+
+## Links
+
+- Source: https://github.com/amritnair/prophecy
+- Run it: docker run -p 8000:8000 ghcr.io/amritnair/prophecy
+- License: MIT
+""")
+
+    (DOCS / "404.html").write_text("""<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not here &mdash; Prophecy</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/prophecy/logo.png">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-content: center;
+         gap: 14px; text-align: center; padding: 24px; background: #000;
+         color: #e8ecf2;
+         font: 15px/1.6 ui-sans-serif, -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.02em; }
+  p { margin: 0; color: #9aa4b2; max-width: 42ch; }
+  a { color: #7DBBFF; }
+</style>
+<h1>Nothing at that address</h1>
+<p>Which is at least a collision Prophecy cannot be blamed for.</p>
+<p><a href="/prophecy/">Back to the dashboard</a> &middot;
+   <a href="https://github.com/amritnair/prophecy">the source</a></p>
+""")
+
+
 def main(repo):
     repo = str(Path(repo).expanduser().resolve())
     DATA.mkdir(parents=True, exist_ok=True)
@@ -197,12 +306,16 @@ def main(repo):
         "<script>window.PROPHECY_STATIC = true;"
         f"window.PROPHECY_REPO = {json.dumps(repo)};</script>\n"
     )
-    # After the doctype, not before the first <script>: the first script tag
-    # in this file lives inside a hidden <textarea> holding the MCP demo page
-    # as text, so anything injected there is content rather than code.
-    doctype = "<!doctype html>\n"
-    assert page.startswith(doctype), "dashboard.html does not start with a doctype"
-    page = doctype + boot + page[len(doctype):]
+    # After the title, not before the first <script>: the first script tag
+    # in this file lives inside a hidden <textarea> holding the MCP demo
+    # page as text, so anything injected there is content rather than code.
+    # Going in after the title also leaves the charset where it belongs,
+    # which is first.
+    anchor = "<title>Prophecy</title>\n"
+    assert page.startswith('<!doctype html>\n<html lang="en">\n'), \
+        "dashboard.html does not open as expected"
+    assert anchor in page, "no title to hang the published tags on"
+    page = page.replace(anchor, anchor + boot + HEAD_TAGS, 1)
     # Half the product needs a checkout and a process. Saying so once, in a
     # corner, beats a reader concluding the editor is broken.
     page += FULL_VERSION
@@ -213,6 +326,8 @@ def main(repo):
         src = ROOT / "prophecy" / asset
         if src.exists():
             shutil.copy(src, DOCS / asset)
+
+    write_site_files()
 
     size = sum(f.stat().st_size for f in DATA.glob("*.json"))
     print(f"\ndocs/index.html + {len(list(DATA.glob('*.json')))} files "

@@ -1,0 +1,36 @@
+# Prophecy
+
+> Reads a repository and answers one question: given everything else
+> happening here, what would this change break?
+
+This page is a recording. Every answer on it was produced by running the
+real engine once and writing the result down, because the engine shells out
+to git against a checkout and a static host has none.
+
+## What it does
+
+- Scans the files git tracks for symbols, signatures and imports. Python
+  through `ast`, TypeScript and JavaScript by pattern matching.
+- Scores a change from 0 to 100 with a range and a confidence, and carries
+  the evidence that produced the score.
+- Finds pairs of changes that are calm alone and dangerous together,
+  including pairs that share no file and no import but meet at the same
+  stored field. That is the case a diff review cannot catch.
+- Serves MCP, so a coding agent asks what it is walking into before it
+  edits, and is handed a slice instead of exploring the tree.
+
+## What it does not do
+
+- Nothing here observes runtime. It knows how many files import a symbol
+  and not how often any of them runs, which is the largest source of the
+  range on every score.
+- Scores are a ranking heuristic. They have not earned the word calibrated.
+- TypeScript is read with pattern matching rather than a parser, so
+  references in it are missed, and the analysis says so rather than
+  quietly rounding up.
+
+## Links
+
+- Source: https://github.com/amritnair/prophecy
+- Run it: docker run -p 8000:8000 ghcr.io/amritnair/prophecy
+- License: MIT

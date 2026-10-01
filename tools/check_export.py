@@ -52,6 +52,28 @@ check(re.search(r'window\.PROPHECY_REPO = "[^"]+"', page or ""),
 check('="/logo.png"' not in page,
       "the logo path is absolute and 404s under /prophecy/")
 
+# The small things a crawler, a link preview and a reader look for. Each is
+# invisible when missing, which is why they go in a check rather than in
+# somebody's memory.
+check('<html lang=' in page, "no lang on the document")
+check('name="description"' in page, "no meta description")
+check('rel="canonical"' in page, "no canonical link")
+check('property="og:image"' in page, "no og:image, so links preview bare")
+check('application/ld+json' in page, "no structured data")
+check(page.count("<h1") == 1,
+      f"{page.count('<h1')} h1 elements, expected exactly one")
+# guarded: a missing tag is a complaint above, not a traceback here
+if "charset" in page and "canonical" in page:
+    check(page.index("charset") < page.index("canonical"),
+          "the charset declaration has been pushed below the published tags")
+for name in ("robots.txt", "sitemap.xml", "llms.txt", "404.html"):
+    check((DOCS / name).exists(), f"{name} was not written")
+if (DOCS / "robots.txt").exists():
+    check("Sitemap:" in (DOCS / "robots.txt").read_text(),
+          "robots.txt does not point at the sitemap")
+    check("Disallow: /" not in (DOCS / "robots.txt").read_text(),
+          "robots.txt turns crawlers away from the whole site")
+
 risk = load("risk")
 check(len(risk.get("changes", [])) >= 5,
       f"risk.json has {len(risk.get('changes', []))} changes, expected the "

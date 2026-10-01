@@ -118,6 +118,7 @@ def main():
     check_risk_engine()
     check_clone_urls()
     check_auth()
+    check_contrast()
 
     print("ok")
 
@@ -673,6 +674,40 @@ def check_auth():
         assert "vic" not in live, live
 
         httpd.shutdown()
+
+
+def check_contrast():
+    """Text has to be readable, and a colour is easy to darken by accident.
+
+    WCAG AA is 4.5:1 for normal text. The cards are the harder surface, so
+    they are what this measures against.
+    """
+    import re
+
+    page = (Path(__file__).resolve().parent.parent
+            / "prophecy" / "dashboard.html").read_text()
+
+    def luminance(colour):
+        colour = colour.lstrip("#")
+        channels = [int(colour[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        channels = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+                    for c in channels]
+        return (0.2126 * channels[0] + 0.7152 * channels[1]
+                + 0.0722 * channels[2])
+
+    def contrast(one, two):
+        a, b = luminance(one), luminance(two)
+        return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+
+    def token(name):
+        found = re.search(rf"--{name}:\s*(#[0-9A-Fa-f]{{6}})", page)
+        assert found, f"no --{name} in the stylesheet"
+        return found.group(1)
+
+    card = token("card")
+    for name in ("text", "text-2", "text-3"):
+        ratio = contrast(token(name), card)
+        assert ratio >= 4.5, f"--{name} is {ratio:.2f}:1 on the cards, under AA"
 
 
 def check_clone_urls():
