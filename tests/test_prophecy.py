@@ -119,6 +119,7 @@ def main():
     check_clone_urls()
     check_auth()
     check_contrast()
+    check_guide()
 
     print("ok")
 
@@ -708,6 +709,60 @@ def check_contrast():
     for name in ("text", "text-2", "text-3"):
         ratio = contrast(token(name), card)
         assert ratio >= 4.5, f"--{name} is {ratio:.2f}:1 on the cards, under AA"
+
+
+def check_guide():
+    """The CLI cheatsheet, and writing it where an agent will find it.
+
+    The install has to be safe to run twice and safe to run over somebody
+    else's notes, because it will be.
+    """
+    from prophecy import guide
+
+    # --json after the subcommand is what anyone writes, and it used to be
+    # an error; before it is the old spelling and has to keep working
+    from prophecy.cli import build_parser
+    parser = build_parser()
+    assert parser.parse_args(["scan", "--json"]).json is True
+    assert parser.parse_args(["--json", "scan"]).json is True
+    assert parser.parse_args(["scan"]).json is False
+    assert parser.parse_args(["--json", "risk"]).json is True
+    assert parser.parse_args(["risk", "--json"]).json is True
+
+    text = guide.text()
+    for command in ("prophecy plan", "prophecy analyze", "prophecy check",
+                    "prophecy note"):
+        assert command in text, command
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+
+        first = guide.install(root)
+        assert first["action"] == "created", first
+        written = (root / "AGENTS.md").read_text()
+        assert guide.BEGIN in written and guide.END in written
+
+        # twice is not twice as much
+        second = guide.install(root)
+        assert second["action"] == "unchanged", second
+        assert (root / "AGENTS.md").read_text().count(guide.BEGIN) == 1
+
+        # a changed guide replaces the old section rather than stacking
+        (root / "AGENTS.md").write_text(
+            written.replace("Before you start", "Something else entirely"))
+        third = guide.install(root)
+        assert third["action"] == "updated", third
+        again = (root / "AGENTS.md").read_text()
+        assert again.count(guide.BEGIN) == 1
+        assert "Something else entirely" not in again
+
+        # and whatever else was in the file is still in the file
+        (root / "AGENTS.md").write_text("# Notes\n\nRun the tests first.\n")
+        fourth = guide.install(root)
+        assert fourth["action"] == "appended", fourth
+        mixed = (root / "AGENTS.md").read_text()
+        assert "Run the tests first." in mixed
+        assert mixed.count(guide.BEGIN) == 1
 
 
 def check_clone_urls():

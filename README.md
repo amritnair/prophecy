@@ -193,6 +193,21 @@ claude mcp add --transport http prophecy http://HOST:8000/mcp
 The tools that matter are `join_repo_session`, `share_finding`,
 `check_overlap`, `analyze_change` and `get_dependency_context`.
 
+When there is no server to connect to, the shell is the integration. The
+CLI is the same engine, and an agent with a terminal needs one thing it does
+not have: a reason to run any of it. `prophecy guide` prints the short
+version — the four commands that matter, in the order a session needs them —
+and `prophecy guide --write` puts it in `AGENTS.md`, which is where an agent
+opening a repository already looks:
+
+```
+prophecy guide --write        # writes AGENTS.md, safe to run twice
+```
+
+It is a marked section, so running it again updates that section and leaves
+the rest of the file alone. Prefer MCP when a server is running: same
+answers, no shell, and `join_repo_session` hands over the slice directly.
+
 Join is where the work happens. Instead of letting an agent explore the tree
 to orient itself, Prophecy hands back the slice: the files this task is
 predicted to touch, the symbols in them, and their line numbers. The

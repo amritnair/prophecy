@@ -29,6 +29,8 @@ MARK = {"high": "!!", "medium": " !", "low": "  "}
 
 def build_parser():
     parser = argparse.ArgumentParser(prog="prophecy", description=__doc__)
+    parser.add_argument("--version", action="version",
+                        version=f"prophecy {version()}")
     parser.add_argument("-C", "--repo", default=".", help="repository to analyse")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument("--base", default="main", help="branch to compare against")
@@ -39,32 +41,53 @@ def build_parser():
                         help="which model provider --llm should use")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("scan", help="summarise what is in the repo")
-    sub.add_parser("status", help="what every branch is doing right now")
-    sub.add_parser("insights", help="what this repo has taught us so far")
+    # `prophecy risk --json` is what anyone writes, and what an agent writes
+    # every time, so it has to mean the same as `prophecy --json risk`.
+    # SUPPRESS matters: without it the subcommand's default would overwrite
+    # the flag when it was given before the subcommand instead.
+    shared = argparse.ArgumentParser(add_help=False)
+    shared.add_argument("--json", action="store_true",
+                        default=argparse.SUPPRESS,
+                        help="machine-readable output")
 
-    plan = sub.add_parser("plan", help="forecast the impact of one task")
+    def add_parser(name, **kwargs):
+        kwargs.setdefault("parents", [shared])
+        return sub.add_parser(name, **kwargs)
+
+    guide = add_parser("guide", help=(
+        "how an agent should use this, short enough to paste"))
+    guide.add_argument("--write", action="store_true", help=(
+        "write it into AGENTS.md in this repository, where an agent "
+        "opening the project will read it"))
+    guide.add_argument("--file", default="AGENTS.md",
+                       help="write somewhere other than AGENTS.md")
+
+    add_parser("scan", help="summarise what is in the repo")
+    add_parser("status", help="what every branch is doing right now")
+    add_parser("insights", help="what this repo has taught us so far")
+
+    plan = add_parser("plan", help="forecast the impact of one task")
     plan.add_argument("task")
 
-    sub.add_parser("predict", help="risks between the branches that already exist")
+    add_parser("predict", help="risks between the branches that already exist")
 
-    pr = sub.add_parser("pr", help="check open pull requests against each other")
+    pr = add_parser("pr", help="check open pull requests against each other")
     pr.add_argument("numbers", nargs="*", type=int,
                     help="specific PRs; default is every open one")
     pr.add_argument("--comment", type=int, metavar="N",
                     help="post the findings as a comment on PR N")
 
-    sim = sub.add_parser("simulate", help="check several tasks against each other")
+    sim = add_parser("simulate", help="check several tasks against each other")
     sim.add_argument("tasks", nargs="*")
     sim.add_argument("--branch", action="append", default=[],
                      help="include a real branch in the comparison (repeatable)")
 
-    ctx = sub.add_parser("context", help="markdown briefing for a task")
+    ctx = add_parser("context", help="markdown briefing for a task")
     ctx.add_argument("task")
     ctx.add_argument("--against", action="append", default=[],
                      help="other in-flight task (repeatable)")
 
-    ag = sub.add_parser("brief",
+    ag = add_parser("brief",
                         help="cache-shaped context for one or more agents")
     ag.add_argument("tasks", nargs="+")
     ag.add_argument("--branch", action="append", default=[],
@@ -78,51 +101,51 @@ def build_parser():
     ag.add_argument("--request", action="store_true",
                     help="print a Messages request with the cache breakpoint placed")
 
-    note = sub.add_parser("note",
+    note = add_parser("note",
                           help="record what an agent found, for the next one")
     note.add_argument("file")
     note.add_argument("text")
     note.add_argument("--agent", required=True, help="who found it")
 
-    sub.add_parser("usage", help="how agents used this and what sharing saved")
+    add_parser("usage", help="how agents used this and what sharing saved")
 
-    fleet = sub.add_parser("fleet",
+    fleet = add_parser("fleet",
                            help="find the work in flight and brief everyone on it")
     fleet.add_argument("tasks", nargs="*", help="extra work not yet in a branch")
     fleet.add_argument("--confirm", action="store_true",
                        help="apply the plan; without this it only describes it")
 
-    explain = sub.add_parser("explain", help="show one risk in full")
+    explain = add_parser("explain", help="show one risk in full")
     explain.add_argument("risk_id")
 
-    verify = sub.add_parser("verify", help="really merge a branch and grade the forecast")
+    verify = add_parser("verify", help="really merge a branch and grade the forecast")
     verify.add_argument("branch")
     verify.add_argument("--test", help="command to run after a clean merge")
 
-    back = sub.add_parser("backfill",
+    back = add_parser("backfill",
                           help="replay old merges and grade the forecast")
     back.add_argument("--limit", type=int, default=50,
                       help="how many merge commits to replay")
     back.add_argument("--ref", default="HEAD", help="history to walk")
 
-    mcp_cmd = sub.add_parser(
+    mcp_cmd = add_parser(
         "mcp", help="run as an MCP server so agents can reach this mid-session")
     mcp_cmd.add_argument("--config", action="store_true",
                          help="print the client config instead of running")
 
-    sub.add_parser("sessions", help="which agents are working here right now")
+    add_parser("sessions", help="which agents are working here right now")
 
-    an = sub.add_parser("analyze",
+    an = add_parser("analyze",
                         help="what could this change break, and how badly")
     an.add_argument("target", nargs="?", default="HEAD",
                     help="a branch, a commit, or base...head")
 
-    sub.add_parser("risk", help="risk across everything in flight right now")
+    add_parser("risk", help="risk across everything in flight right now")
 
-    sub.add_parser("history",
+    add_parser("history",
                    help="who changed what, and what prophecy said about it")
 
-    rs = sub.add_parser("restore", help="put an old version back in your tree")
+    rs = add_parser("restore", help="put an old version back in your tree")
     rs.add_argument("sha")
     rs.add_argument("paths", nargs="*")
     rs.add_argument("--force", action="store_true",
@@ -130,13 +153,13 @@ def build_parser():
     rs.add_argument("--preview", action="store_true",
                     help="show what would change without writing anything")
 
-    chk = sub.add_parser("check",
+    chk = add_parser("check",
                          help="run before committing; exits non-zero if risky")
     chk.add_argument("target", nargs="?", default="HEAD")
     chk.add_argument("--max", type=int, default=70,
                      help="fail above this score (default 70)")
 
-    new = sub.add_parser("new", help="start a project already wired for agents")
+    new = add_parser("new", help="start a project already wired for agents")
     new.add_argument("path")
     new.add_argument("--name")
     new.add_argument("--github", metavar="OWNER/NAME",
@@ -144,26 +167,26 @@ def build_parser():
     new.add_argument("--public", action="store_true",
                      help="make the GitHub repo public instead of private")
 
-    dm = sub.add_parser("demo", help="build a sample project with three "
+    dm = add_parser("demo", help="build a sample project with three "
                                      "conflicting changes already in it")
     dm.add_argument("path")
     dm.add_argument("--serve", action="store_true",
                     help="seed it and open the dashboard on it")
     dm.add_argument("--port", type=int, default=8800)
 
-    ag = sub.add_parser("agents",
+    ag = add_parser("agents",
                         help="watch three agents coordinate through prophecy")
     ag.add_argument("--repo", dest="agents_repo",
                     help="which project; defaults to the one -C points at")
 
-    people = sub.add_parser("people", help="who is on this project")
+    people = add_parser("people", help="who is on this project")
     people.add_argument("action", nargs="?", default="list",
                         choices=["list", "add", "remove"])
     people.add_argument("name", nargs="?")
     people.add_argument("--github", default="", help="their GitHub handle")
     people.add_argument("--role", default="")
 
-    serve = sub.add_parser("serve", help="dashboard and MCP on the network")
+    serve = add_parser("serve", help="dashboard and MCP on the network")
     serve.add_argument("--port", type=int, default=8000)
     serve.add_argument("--auth", choices=["github"], help=(
         "Require people to sign in with GitHub. Needs "
@@ -189,8 +212,31 @@ def build_parser():
     return parser
 
 
+def version():
+    """The installed version, without making a dependency of it."""
+    try:
+        from importlib.metadata import version as installed
+        return installed("prophecy")
+    except Exception:
+        return "0.1.0 (not installed)"
+
+
 def main(argv=None):
     args = build_parser().parse_args(argv)
+    if args.cmd == "guide":
+        from . import guide as guide_mod
+        if not args.write:
+            print(guide_mod.text())
+            return 0
+        done = guide_mod.install(args.repo, args.file)
+        if args.json:
+            json.dump(done, sys.stdout, indent=2)
+            print()
+        else:
+            print(f"{done['action']} {done['path']}")
+            if done["action"] != "unchanged":
+                print("  an agent opening this project will read it there")
+        return 0
     if args.cmd == "agents":
         from .agents_demo import run as run_agents
         run_agents(args.agents_repo or args.repo)
