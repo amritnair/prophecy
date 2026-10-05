@@ -53,6 +53,23 @@ last project and tab in `localStorage` so it opens where you left it; clear
 site data and that is gone too. The one third party is Google Fonts, which
 sees an IP address when the page loads, as it does on any site that uses it.
 
+## What has been attacked on purpose
+
+Prophecy will fetch a repository by URL and then render what is in it, so
+the repository is untrusted input. A test repo was built with a branch named
+`feat/<img/src=x/onerror=...>`, a tracked file named
+`<img src=x onerror=...>.py`, a commit message carrying the same, and an
+agent joining over MCP under that name. None of it executed: every one
+arrives entity-escaped and inert, because the page escapes where strings are
+built rather than where they are interpolated.
+
+Session and token comparisons use `hmac.compare_digest`, since `!=` returns
+as soon as two strings differ and tells an attacker how much of a guess was
+right.
+
+Worth repeating what is not covered: the GitHub round trip has never run
+against GitHub, and there is no rate limiting on sign-in attempts.
+
 ## Known limits
 
 `--public` is about paths and writes, not about secrets. Anything in the

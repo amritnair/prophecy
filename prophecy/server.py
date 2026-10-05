@@ -5,6 +5,7 @@ static HTML file. No build step, no node_modules, nothing to install.
 """
 
 import datetime
+import hmac
 import json
 import os
 import socket
@@ -113,7 +114,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         sent = self.headers.get("X-Prophecy-CSRF") or ""
         want = auth_mod.csrf_token(self._secret(), person["session_token"])
-        if not sent or sent != want:
+        # compare_digest rather than !=, which returns as soon as two
+        # strings differ and so leaks how much of a guess was right
+        if not sent or not hmac.compare_digest(sent, want):
             raise BadRequest(
                 "That request did not carry a valid token for this session.",
                 hint="Reload the page and try again.", code="bad_csrf")
@@ -602,12 +605,12 @@ class Handler(BaseHTTPRequestHandler):
             # a shared token still works, so an instance can be moved to
             # sign in without every agent breaking at the same moment
             shared = os.environ.get("PROPHECY_MCP_TOKEN", "")
-            return bool(shared) and bearer == shared
+            return bool(shared) and hmac.compare_digest(bearer, shared)
 
         token = os.environ.get("PROPHECY_MCP_TOKEN", "")
         if not token:
             return True
-        return bearer == token
+        return hmac.compare_digest(bearer, token)
 
     def _mcp_get(self):
         """Browsers get a description. MCP clients that want SSE can POST."""
